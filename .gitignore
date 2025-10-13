@@ -24,9 +24,6 @@ go.work.sum
 # Dependency directories
 vendor/
 
-# Compiled binary for this project
-ledger
-
 # IDE / Editor
 .idea/
 .vscode/
