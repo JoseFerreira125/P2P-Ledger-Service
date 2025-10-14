@@ -1,5 +1,5 @@
 # Stage 1: Build the Go application
-FROM golang:1.22-alpine AS builder
+FROM golang:1.24-alpine AS builder
 
 WORKDIR /app
 
@@ -18,11 +18,21 @@ FROM alpine:latest
 
 WORKDIR /root/
 
+# Install necessary tools for the entrypoint script
+RUN apk add --no-cache curl jq bash netcat-openbsd
+
 # Copy the compiled binary from the builder stage
 COPY --from=builder /app/ledger .
+# Copy the .env file from the builder stage to the final image
+COPY --from=builder /app/.env .
+# Copy the entrypoint scripts
+COPY wait-for-it.sh entrypoint.sh .
+
+# Make the entrypoint scripts executable
+RUN chmod +x wait-for-it.sh entrypoint.sh
 
 # Expose the port the app runs on
 EXPOSE 8080
 
-# Run the binary
+# Default command (can be overridden by docker-compose)
 CMD ["./ledger"]

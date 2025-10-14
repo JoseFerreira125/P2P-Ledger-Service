@@ -1,4 +1,4 @@
-package ledger
+package domain
 
 import (
 	"os"
@@ -13,6 +13,9 @@ type Config struct {
 	InitialDifficulty            int
 	BlockGenerationInterval      time.Duration
 	DifficultyAdjustmentInterval int64
+	P2PListenAddress             string
+	HTTPListenAddress            string
+	PeriodicSyncInterval         time.Duration // New field for periodic sync
 }
 
 func LoadConfig() *Config {
@@ -24,6 +27,9 @@ func LoadConfig() *Config {
 		InitialDifficulty:            getEnvAsInt("INITIAL_DIFFICULTY", 4),
 		BlockGenerationInterval:      getEnvAsDuration("BLOCK_GENERATION_INTERVAL_SECONDS", 10) * time.Second,
 		DifficultyAdjustmentInterval: int64(getEnvAsInt("DIFFICULTY_ADJUSTMENT_INTERVAL_BLOCKS", 10)),
+		P2PListenAddress:             getEnv("P2P_LISTEN_ADDRESS", "/ip4/0.0.0.0/tcp/4000"),
+		HTTPListenAddress:            getEnv("HTTP_LISTEN_ADDRESS", ":8080"),
+		PeriodicSyncInterval:         getEnvAsDuration("PERIODIC_SYNC_INTERVAL_SECONDS", 30) * time.Second, // Default to 30 seconds
 	}
 }
 

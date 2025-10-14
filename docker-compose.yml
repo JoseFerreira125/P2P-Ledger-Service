@@ -1,14 +1,42 @@
-version: '3.8'
-
 services:
-  ledger:
+  ledger-1:
     build: .
+    hostname: ledger-1
     ports:
-      - "8080:8080"
+      - "8081:8080" # API for node 1
+    env_file:
+      - .env
+    environment:
+      - P2P_LISTEN_ADDRESS=/ip4/0.0.0.0/tcp/4000
+    volumes:
+      - ledger-data-1:/data
+    command: ["./ledger"]
+
+  ledger-2:
+    build: .
+    hostname: ledger-2
+    ports:
+      - "8082:8080" # API for node 2
     env_file:
       - .env
     volumes:
-      - ledger-data:/data
+      - ledger-data-2:/data
+    entrypoint: ["./entrypoint.sh"]
+    depends_on:
+      - ledger-1
+
+  ledger-3:
+    build: .
+    hostname: ledger-3
+    ports:
+      - "8083:8080" # API for node 3
+    env_file:
+      - .env
+    volumes:
+      - ledger-data-3:/data
+    entrypoint: ["./entrypoint.sh"]
+    depends_on:
+      - ledger-1
 
   prometheus:
     image: prom/prometheus:v2.37.0
@@ -17,6 +45,10 @@ services:
     volumes:
       - ./prometheus.yml:/etc/prometheus/prometheus.yml
     command: ["--config.file=/etc/prometheus/prometheus.yml"]
+    depends_on:
+      - ledger-1
+      - ledger-2
+      - ledger-3
 
   grafana:
     image: grafana/grafana:9.1.0
@@ -25,10 +57,13 @@ services:
     volumes:
       - ./grafana/provisioning/:/etc/grafana/provisioning/
       - ./grafana/dashboards/:/var/lib/grafana/dashboards/
+      - ./grafana/grafana.ini:/etc/grafana/grafana.ini
     environment:
       - GF_AUTH_ANONYMOUS_ENABLED=true
       - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
       - GF_AUTH_DISABLE_LOGIN_FORM=true
 
 volumes:
-  ledger-data:
+  ledger-data-1:
+  ledger-data-2:
+  ledger-data-3:

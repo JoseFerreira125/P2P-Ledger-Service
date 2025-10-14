@@ -19,9 +19,14 @@
           "refId": "A"
         }
       ],
+      "fieldConfig": {
+        "defaults": {
+          "displayName": "${__field.labels.node}"
+        }
+      },
       "gridPos": {
         "h": 8,
-        "w": 8,
+        "w": 6,
         "x": 0,
         "y": 0
       }
@@ -35,10 +40,36 @@
           "refId": "A"
         }
       ],
+      "fieldConfig": {
+        "defaults": {
+          "displayName": "${__field.labels.node}"
+        }
+      },
       "gridPos": {
         "h": 8,
-        "w": 8,
-        "x": 8,
+        "w": 6,
+        "x": 6,
+        "y": 0
+      }
+    },
+    {
+      "title": "Connected Peers",
+      "type": "stat",
+      "targets": [
+        {
+          "expr": "p2p_peer_count",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "displayName": "${__field.labels.node}"
+        }
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 6,
+        "x": 12,
         "y": 0
       }
     },
@@ -48,14 +79,32 @@
       "targets": [
         {
           "expr": "rate(mining_time_seconds_sum[5m]) / rate(mining_time_seconds_count[5m])",
-          "refId": "A"
+          "refId": "A",
+          "legendFormat": "{{node}}"
         }
       ],
       "gridPos": {
         "h": 8,
-        "w": 8,
-        "x": 16,
-        "y": 0
+        "w": 12,
+        "x": 0,
+        "y": 8
+      }
+    },
+    {
+      "title": "Transactions Per Block",
+      "type": "barchart",
+      "targets": [
+        {
+          "expr": "rate(transactions_per_block_sum[5m]) / rate(transactions_per_block_count[5m])",
+          "refId": "A",
+          "legendFormat": "{{node}}"
+        }
+      ],
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 8
       }
     }
   ],
@@ -66,7 +115,7 @@
     "list": []
   },
   "time": {
-    "from": "now-6h",
+    "from": "now-15m",
     "to": "now"
   },
   "timepicker": {},

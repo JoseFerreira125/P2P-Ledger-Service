@@ -1,4 +1,4 @@
-package ledger
+package domain
 
 import (
 	"crypto/sha256"
@@ -33,7 +33,6 @@ func newMerkleNode(left, right *MerkleNode, data []byte) *MerkleNode {
 }
 
 func newMerkleTree(data [][]byte) *MerkleTree {
-	// For an empty block, the Merkle root is the hash of an empty byte slice.
 	if len(data) == 0 {
 		hash := sha256.Sum256([]byte{})
 		return &MerkleTree{RootNode: &MerkleNode{Data: hash[:]}}

@@ -1,47 +1,45 @@
 # Minimalist Immutable Ledger Service (MILS)
 
-This project is a lightweight, single-purpose microservice written in Go that provides an immutable, tamper-proof log of transactions. It's designed to be a reliable backend component for auditing, critical event tracking, or any system that requires a high degree of data integrity.
+This project is a lightweight, single-purpose microservice written in Go that provides an immutable, tamper-proof log of transactions. It operates as a peer-to-peer node in a decentralized network, collectively maintaining a single, consistent blockchain.
 
 ## What Has Been Done
 
 The current implementation includes the following features:
 
+*   **Robust Peer-to-Peer Mesh Networking**: The service operates as a true P2P node. Nodes connect to a bootstrap peer and then automatically discover and connect to other peers in the network, forming a resilient **mesh topology**. Multiaddress handling has been significantly improved to ensure correct peer identification and connection. Transactions and blocks are gossiped efficiently across all nodes, and the number of connected peers is accurately tracked via Prometheus metrics.
+*   **Unique Transaction Identification**: Transactions now include a timestamp in their hash, ensuring that even transactions with identical data are uniquely identified. This resolves the issue of only the first transaction being registered.
 *   **Core Blockchain Logic**: A fully functional blockchain implementation with blocks, transactions, and a Proof-of-Work (PoW) consensus mechanism.
-*   **Dynamic Difficulty Adjustment**: The PoW difficulty automatically adjusts every 10 blocks to maintain a consistent block generation time.
-*   **Merkle Tree**: Each block includes a Merkle Tree root to ensure the integrity of its transactions and allow for efficient verification.
-*   **Externalized Configuration**: Key parameters (difficulty, block time, etc.) are managed via environment variables and a `.env` file for easy configuration across different environments.
-*   **Persistence with an Embedded Database**: The blockchain state is persisted using **BoltDB**, an embedded key-value store. For containerized deployments, the database file is stored in a named Docker volume.
-*   **Observability**: The service is instrumented for production-level monitoring:
-    *   **Structured Logging**: Uses `logrus` for structured, JSON-formatted logging.
-    *   **Prometheus Metrics**: Exposes key metrics on a `/metrics` endpoint, including `block_height`, `mempool_size`, and `mining_time_seconds`.
-*   **Containerization**: The entire application stack can be run using Docker and Docker Compose, including the ledger service, Prometheus, and a pre-configured Grafana dashboard.
-*   **API Endpoints**: A set of RESTful API endpoints to interact with the ledger.
+*   **Dynamic Difficulty Adjustment**: The PoW difficulty automatically adjusts to maintain a consistent block generation time.
+*   **Interactive API Documentation**: The API is fully documented using **Swagger/OpenAPI**, providing an interactive UI for exploration and testing.
+*   **Externalized Configuration**: Key parameters are managed via environment variables and a `.env` file.
+*   **Persistence**: The blockchain state is persisted using **BoltDB**, an embedded key-value store.
+*   **Observability**: The service is instrumented for production-level monitoring with structured logging (`logrus`) and **Prometheus** metrics.
+*   **Containerization**: The entire application stack, including a **3-node decentralized mesh network**, Prometheus, and Grafana, can be run with a single Docker Compose command.
 
 ## Future Improvements
 
 This project provides a solid foundation, but there are several areas where it could be extended:
 
-*   **Migrate to a Client-Server Database**: To better align with a microservices architecture, the embedded BoltDB could be replaced with a client-server database like **Redis**. This would allow the database to run in a separate container, fully independent of the application container.
-*   **Peer-to-Peer Networking**: To create a truly decentralized ledger, a peer-to-peer networking layer could be added to allow multiple nodes to communicate and stay in sync.
-*   **WebSockets**: For real-time updates, a WebSocket API could be added to notify clients when new blocks are mined or new transactions are added to the mempool.
+*   **Advanced Consensus & Synchronization**: Implement logic for new nodes to sync the entire historical blockchain from peers. Develop a robust fork resolution strategy (e.g., "longest chain wins") to handle network partitions.
+*   **Migrate to a Client-Server Database**: To better align with a microservices architecture, the embedded BoltDB could be replaced with a client-server database like **Redis**.
+*   **WebSockets**: For real-time updates, a WebSocket API could be added to notify clients of network events.
 
 ## Start-Up Guide
 
-### Using Docker (Recommended)
+### Running the 3-Node Network with Docker (Recommended)
 
-The easiest way to run the entire stack is with Docker Compose.
-
-1.  **Clone the repository**:
+1.  **Clone the repository** and prepare the environment file:
 
     ```bash
     git clone https://github.com/joseferreira/Immutable-Ledger-Service.git
     cd Immutable-Ledger-Service
+    cp .env.example .env
     ```
 
-2.  **Configure Environment**: Copy the example environment file. You can customize the values in `.env` if you wish.
+2.  **Generate API Documentation** (only needs to be done once, or after changing API annotations):
 
     ```bash
-    cp .env.example .env
+    swag init -g cmd/ledger/main.go
     ```
 
 3.  **Run the services**:
@@ -50,69 +48,37 @@ The easiest way to run the entire stack is with Docker Compose.
     docker-compose up --build
     ```
 
-    This will build the ledger service and start the `ledger`, `prometheus`, and `grafana` containers. The configuration from your `.env` file will be automatically loaded.
-
 4.  **Access the services**:
 
-    *   **Ledger API**: `http://localhost:8080`
+    *   **Interactive API Docs (Swagger)**: `http://localhost:8081/swagger/index.html`
     *   **Prometheus**: `http://localhost:9090`
-    *   **Grafana**: `http://localhost:3000` (a pre-configured dashboard will be available)
+    *   **Grafana**: `http://localhost:3000`
 
-### Running Locally
+## API Documentation
 
-To run the service locally without Docker, you'll need to have Go installed (version 1.22 or later).
+The API is documented using OpenAPI (Swagger). When the application is running, you can access the interactive Swagger UI for detailed information on all endpoints.
 
-1.  **Clone the repository**:
+*   **URL**: `http://localhost:8081/swagger/index.html` (for Node 1)
 
-    ```bash
-    git clone https://github.com/joseferreira/Immutable-Ledger-Service.git
-    cd Immutable-Ledger-Service
-    ```
+For offline viewing, you can see the static specification file here: **[View `swagger.yaml`](./docs/swagger.yaml)**
 
-2.  **Configure Environment**: Copy the example environment file. The `godotenv` library will automatically load this file when you run the application.
+## Testing the P2P Mesh Network
 
-    ```bash
-    cp .env.example .env
-    ```
+With your three-node network running, you can test the gossip protocol and see the mesh networking in action.
 
-3.  **Install dependencies**:
+1.  **Send multiple transactions to Node 2** (you no longer need to mine between transactions):
 
     ```bash
-    go mod tidy
+    curl -X POST -H "Content-Type: application/json" -d '{"data": "first transaction from node 2"}' http://localhost:8082/transaction
+    curl -X POST -H "Content-Type: application/json" -d '{"data": "second transaction from node 2"}' http://localhost:8082/transaction
     ```
 
-4.  **Run the service**:
+    Check the Docker logs (`docker-compose logs -f ledger-1 ledger-3`). You will see that both Node 1 and Node 3 receive the transactions from Node 2, demonstrating that the nodes have discovered each other and are gossiping correctly.
+
+2.  **Mine a block on Node 2**:
 
     ```bash
-    go run cmd/ledger/main.go
+    curl -X POST http://localhost:8082/mine
     ```
 
-    The service will start and listen on port `8080`.
-
-### Interacting with the API
-
-You can use a tool like `curl` to interact with the API.
-
-*   **Add a transaction**:
-
-    ```bash
-    curl -X POST -d '{"data": "your transaction data"}' http://localhost:8080/transaction
-    ```
-
-*   **Mine a new block**:
-
-    ```bash
-    curl -X POST http://localhost:8080/mine
-    ```
-
-*   **Verify the chain**:
-
-    ```bash
-    curl http://localhost:8080/chain/verify
-    ```
-
-*   **Get a block by index**:
-
-    ```bash
-    curl http://localhost:8080/block/1
-    ```
+    Check the logs for `ledger-1` and `ledger-3`. You will see that both nodes receive the newly mined block from Node 2. This confirms that block propagation works across the mesh network.

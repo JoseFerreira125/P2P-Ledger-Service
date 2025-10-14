@@ -1,4 +1,4 @@
-package ledger
+package domain
 
 import (
 	"bytes"
@@ -35,25 +35,25 @@ func newBlock(index int64, transactions []*Transaction, prevBlockHash string, di
 	return block
 }
 
-func (b *Block) setMerkleRoot() {
+func (block *Block) setMerkleRoot() {
 	var txData [][]byte
-	for _, tx := range b.Transactions {
-		txBytes, _ := json.Marshal(tx)
+	for _, transaction := range block.Transactions {
+		txBytes, _ := json.Marshal(transaction)
 		txData = append(txData, txBytes)
 	}
 	mTree := newMerkleTree(txData)
-	b.MerkleRoot = hex.EncodeToString(mTree.RootNode.Data)
+	block.MerkleRoot = hex.EncodeToString(mTree.RootNode.Data)
 }
 
-func (b *Block) CalculateHash() string {
-	timestamp := strconv.FormatInt(b.Timestamp, 10)
-	nonce := strconv.FormatInt(b.Nonce, 10)
+func (block *Block) calculateHash() string {
+	timestamp := strconv.FormatInt(block.Timestamp, 10)
+	nonce := strconv.FormatInt(block.Nonce, 10)
 	headers := bytes.Join(
 		[][]byte{
-			[]byte(strconv.FormatInt(b.Index, 10)),
+			[]byte(strconv.FormatInt(block.Index, 10)),
 			[]byte(timestamp),
-			[]byte(b.PrevBlockHash),
-			[]byte(b.MerkleRoot),
+			[]byte(block.PrevBlockHash),
+			[]byte(block.MerkleRoot),
 			[]byte(nonce),
 		},
 		[]byte{},
@@ -62,14 +62,14 @@ func (b *Block) CalculateHash() string {
 	return hex.EncodeToString(hash[:])
 }
 
-func (b *Block) Mine() {
-	target := strings.Repeat("0", b.Difficulty)
+func (block *Block) mine() {
+	target := strings.Repeat("0", block.Difficulty)
 	for {
-		b.Hash = b.CalculateHash()
-		if b.Hash[:b.Difficulty] == target {
-			fmt.Printf("Block mined: %s\n", b.Hash)
+		block.Hash = block.calculateHash()
+		if block.Hash[:block.Difficulty] == target {
+			fmt.Printf("Block mined: %s\n", block.Hash)
 			break
 		}
-		b.Nonce++
+		block.Nonce++
 	}
 }

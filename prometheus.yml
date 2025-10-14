@@ -4,4 +4,12 @@ global:
 scrape_configs:
   - job_name: 'ledger'
     static_configs:
-      - targets: ['ledger:8080']
+      - targets: ['ledger-1:8080']
+        labels:
+          node: 'ledger-1'
+      - targets: ['ledger-2:8080']
+        labels:
+          node: 'ledger-2'
+      - targets: ['ledger-3:8080']
+        labels:
+          node: 'ledger-3'

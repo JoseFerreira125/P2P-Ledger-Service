@@ -1,0 +1,120 @@
+definitions:
+  api.VerifyResponse:
+    properties:
+      is_valid:
+        type: boolean
+    type: object
+  ledger.Block:
+    properties:
+      difficulty:
+        type: integer
+      hash:
+        type: string
+      index:
+        type: integer
+      merkleRoot:
+        type: string
+      nonce:
+        type: integer
+      prevBlockHash:
+        type: string
+      timestamp:
+        type: integer
+      transactions:
+        items:
+          $ref: '#/definitions/ledger.Transaction'
+        type: array
+    type: object
+  ledger.Transaction:
+    properties:
+      data:
+        type: string
+    type: object
+info:
+  contact: {}
+  description: A decentralized, peer-to-peer immutable ledger service.
+  title: Minimalist Immutable Ledger Service (MILS)
+  version: "1.0"
+paths:
+  /block/{index}:
+    get:
+      description: Retrieves a specific block from the local blockchain by its index.
+      parameters:
+      - description: Block index
+        in: path
+        name: index
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/ledger.Block'
+        "400":
+          description: Missing or invalid block index
+          schema:
+            type: string
+        "404":
+          description: Block not found
+          schema:
+            type: string
+      summary: Get a block by index
+      tags:
+      - Blockchain
+  /chain/verify:
+    get:
+      description: Verifies the integrity of the node's entire local blockchain by
+        checking the hash linkage of all blocks.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.VerifyResponse'
+      summary: Verify the blockchain
+      tags:
+      - Blockchain
+  /mine:
+    post:
+      description: Instructs the node to mine a new block from transactions in the
+        mempool. This is an asynchronous operation.
+      produces:
+      - text/plain
+      responses:
+        "202":
+          description: Mining process started
+          schema:
+            type: string
+      summary: Mine a new block
+      tags:
+      - Blockchain
+  /transaction:
+    post:
+      consumes:
+      - application/json
+      description: Adds a new transaction to the mempool and broadcasts it to peers.
+      parameters:
+      - description: The transaction to add
+        in: body
+        name: transaction
+        required: true
+        schema:
+          $ref: '#/definitions/ledger.Transaction'
+      produces:
+      - text/plain
+      responses:
+        "201":
+          description: Transaction added to mempool and broadcasted
+          schema:
+            type: Created
+        "400":
+          description: Error reading request body or unmarshalling transaction
+          schema:
+            type: string
+      summary: Submit a new transaction
+      tags:
+      - Blockchain
+swagger: "2.0"
