@@ -6,24 +6,23 @@ import (
 	"sync"
 	"time"
 
-	bolt "go.etcd.io/bbolt"
 	"github.com/sirupsen/logrus"
+	bolt "go.etcd.io/bbolt"
 )
 
 const (
 	blocksBucket = "blocks"
 )
 
-// Blockchain represents the blockchain.
 type Blockchain struct {
 	Blocks     []*Block
 	Mempool    []*Transaction
 	Mu         sync.Mutex
 	db         *bolt.DB
 	difficulty int
+	config     *Config
 }
 
-// getDBPath returns the database path from the environment or a default value.
 func getDBPath() string {
 	dbPath := os.Getenv("DB_PATH")
 	if dbPath == "" {
@@ -32,8 +31,7 @@ func getDBPath() string {
 	return dbPath
 }
 
-// NewBlockchain creates a new blockchain with a genesis block or loads from the DB.
-func NewBlockchain(difficulty int) *Blockchain {
+func NewBlockchain(config *Config) *Blockchain {
 	dbPath := getDBPath()
 	db, err := bolt.Open(dbPath, 0600, nil)
 	if err != nil {
@@ -48,7 +46,7 @@ func NewBlockchain(difficulty int) *Blockchain {
 		b := tx.Bucket([]byte(blocksBucket))
 
 		if b == nil {
-			genesis := NewBlock(0, []*Transaction{}, "0", difficulty)
+			genesis := newBlock(0, []*Transaction{}, "0", config.InitialDifficulty)
 			genesis.Mine()
 
 			b, err := tx.CreateBucket([]byte(blocksBucket))
@@ -93,7 +91,8 @@ func NewBlockchain(difficulty int) *Blockchain {
 		Blocks:     blocks,
 		Mempool:    []*Transaction{},
 		db:         db,
-		difficulty: difficulty,
+		difficulty: config.InitialDifficulty,
+		config:     config,
 	}
 
 	BlockHeight.Set(float64(len(bc.Blocks)))
@@ -102,7 +101,31 @@ func NewBlockchain(difficulty int) *Blockchain {
 	return bc
 }
 
-// AddBlock adds a new block to the blockchain and persists it.
+func (bc *Blockchain) getDifficulty() int {
+	latestBlock := bc.Blocks[len(bc.Blocks)-1]
+	if latestBlock.Index%bc.config.DifficultyAdjustmentInterval == 0 && latestBlock.Index != 0 {
+		return bc.calculateDifficulty()
+	}
+	return latestBlock.Difficulty
+}
+
+func (bc *Blockchain) calculateDifficulty() int {
+	firstBlock := bc.Blocks[len(bc.Blocks)-int(bc.config.DifficultyAdjustmentInterval)]
+	actualTimeTaken := bc.Blocks[len(bc.Blocks)-1].Timestamp - firstBlock.Timestamp
+	expectedTimeTaken := int64(bc.config.BlockGenerationInterval) * bc.config.DifficultyAdjustmentInterval
+
+	if actualTimeTaken < expectedTimeTaken/2 {
+		return bc.difficulty + 1
+	} else if actualTimeTaken > expectedTimeTaken*2 {
+		newDifficulty := bc.difficulty - 1
+		if newDifficulty < 1 {
+			return 1
+		}
+		return newDifficulty
+	}
+	return bc.difficulty
+}
+
 func (bc *Blockchain) AddBlock() *Block {
 	bc.Mu.Lock()
 	defer bc.Mu.Unlock()
@@ -110,7 +133,8 @@ func (bc *Blockchain) AddBlock() *Block {
 	startTime := time.Now()
 
 	prevBlock := bc.Blocks[len(bc.Blocks)-1]
-	newBlock := NewBlock(prevBlock.Index+1, bc.Mempool, prevBlock.Hash, bc.difficulty)
+	difficulty := bc.getDifficulty()
+	newBlock := newBlock(prevBlock.Index+1, bc.Mempool, prevBlock.Hash, difficulty)
 	newBlock.Mine()
 
 	duration := time.Since(startTime)
@@ -136,16 +160,16 @@ func (bc *Blockchain) AddBlock() *Block {
 	MempoolSize.Set(0)
 
 	logrus.WithFields(logrus.Fields{
-		"index":    newBlock.Index,
-		"hash":     newBlock.Hash,
-		"nonce":    newBlock.Nonce,
-		"duration": duration,
+		"index":      newBlock.Index,
+		"hash":       newBlock.Hash,
+		"nonce":      newBlock.Nonce,
+		"duration":   duration,
+		"difficulty": difficulty,
 	}).Info("Block mined")
 
 	return newBlock
 }
 
-// AddTransactionToMempool adds a transaction to the mempool.
 func (bc *Blockchain) AddTransactionToMempool(tx *Transaction) {
 	bc.Mu.Lock()
 	defer bc.Mu.Unlock()
@@ -154,7 +178,6 @@ func (bc *Blockchain) AddTransactionToMempool(tx *Transaction) {
 	logrus.WithField("transaction", tx.Data).Info("Transaction added to mempool")
 }
 
-// VerifyChain verifies the integrity of the blockchain.
 func (bc *Blockchain) VerifyChain() bool {
 	for i := 1; i < len(bc.Blocks); i++ {
 		currentBlock := bc.Blocks[i]
@@ -182,7 +205,6 @@ func (bc *Blockchain) VerifyChain() bool {
 	return true
 }
 
-// Close closes the database connection.
 func (bc *Blockchain) Close() {
 	logrus.Info("Closing database")
 	bc.db.Close()

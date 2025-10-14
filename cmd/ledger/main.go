@@ -19,15 +19,13 @@ import (
 var bc *ledger.Blockchain
 
 func main() {
-	// Configure Logrus
 	logrus.SetFormatter(&logrus.JSONFormatter{})
 	logrus.SetOutput(os.Stdout)
 
-	// Initialize the blockchain with a difficulty of 4
-	bc = ledger.NewBlockchain(4)
+	config := ledger.LoadConfig()
+	bc = ledger.NewBlockchain(config)
 	defer bc.Close()
 
-	// Handle graceful shutdown
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 	go func() {
@@ -49,7 +47,6 @@ func main() {
 	}
 }
 
-// transactionHandler handles adding a new transaction to the mempool.
 func transactionHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		w.WriteHeader(http.StatusMethodNotAllowed)
@@ -77,7 +74,6 @@ func transactionHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprint(w, "Transaction added to mempool")
 }
 
-// mineHandler triggers the mining of a new block.
 func mineHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		w.WriteHeader(http.StatusMethodNotAllowed)
@@ -92,7 +88,6 @@ func mineHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprint(w, "Mining process started")
 }
 
-// verifyChainHandler verifies the integrity of the blockchain.
 func verifyChainHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		w.WriteHeader(http.StatusMethodNotAllowed)
@@ -107,7 +102,6 @@ func verifyChainHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(response)
 }
 
-// getBlockHandler retrieves a block by its index.
 func getBlockHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		w.WriteHeader(http.StatusMethodNotAllowed)

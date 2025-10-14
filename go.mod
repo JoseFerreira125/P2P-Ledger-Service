@@ -3,6 +3,7 @@ module github.com/joseferreira/Immutable-Ledger-Service
 go 1.22
 
 require (
+	github.com/joho/godotenv v1.5.1
 	github.com/prometheus/client_golang v1.19.0
 	github.com/sirupsen/logrus v1.9.3
 	go.etcd.io/bbolt v1.3.10

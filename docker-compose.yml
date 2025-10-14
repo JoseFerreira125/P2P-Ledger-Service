@@ -5,8 +5,8 @@ services:
     build: .
     ports:
       - "8080:8080"
-    environment:
-      - DB_PATH=/data/blockchain.db
+    env_file:
+      - .env
     volumes:
       - ledger-data:/data
 

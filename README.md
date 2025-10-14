@@ -7,24 +7,20 @@ This project is a lightweight, single-purpose microservice written in Go that pr
 The current implementation includes the following features:
 
 *   **Core Blockchain Logic**: A fully functional blockchain implementation with blocks, transactions, and a Proof-of-Work (PoW) consensus mechanism.
+*   **Dynamic Difficulty Adjustment**: The PoW difficulty automatically adjusts every 10 blocks to maintain a consistent block generation time.
 *   **Merkle Tree**: Each block includes a Merkle Tree root to ensure the integrity of its transactions and allow for efficient verification.
-*   **Proof-of-Work (PoW) Mining**: New blocks are mined using a PoW algorithm, which secures the ledger and prevents tampering.
-*   **Persistence with an Embedded Database**: The blockchain state is persisted using **BoltDB**, an embedded key-value store that runs within the Go application process. For containerized deployments, the database file is stored in a named Docker volume to ensure data persistence across container restarts.
+*   **Externalized Configuration**: Key parameters (difficulty, block time, etc.) are managed via environment variables and a `.env` file for easy configuration across different environments.
+*   **Persistence with an Embedded Database**: The blockchain state is persisted using **BoltDB**, an embedded key-value store. For containerized deployments, the database file is stored in a named Docker volume.
 *   **Observability**: The service is instrumented for production-level monitoring:
     *   **Structured Logging**: Uses `logrus` for structured, JSON-formatted logging.
     *   **Prometheus Metrics**: Exposes key metrics on a `/metrics` endpoint, including `block_height`, `mempool_size`, and `mining_time_seconds`.
 *   **Containerization**: The entire application stack can be run using Docker and Docker Compose, including the ledger service, Prometheus, and a pre-configured Grafana dashboard.
-*   **API Endpoints**: A set of RESTful API endpoints to interact with the ledger:
-    *   `POST /transaction`: Add a new transaction to the mempool.
-    *   `POST /mine`: Trigger the mining of a new block.
-    *   `GET /chain/verify`: Verify the integrity of the entire blockchain.
-    *   `GET /block/{index}`: Retrieve a specific block by its index.
+*   **API Endpoints**: A set of RESTful API endpoints to interact with the ledger.
 
 ## Future Improvements
 
 This project provides a solid foundation, but there are several areas where it could be extended:
 
-*   **Dynamic Difficulty Adjustment**: The PoW difficulty is currently fixed. A future improvement would be to dynamically adjust the difficulty to maintain a consistent block time.
 *   **Migrate to a Client-Server Database**: To better align with a microservices architecture, the embedded BoltDB could be replaced with a client-server database like **Redis**. This would allow the database to run in a separate container, fully independent of the application container.
 *   **Peer-to-Peer Networking**: To create a truly decentralized ledger, a peer-to-peer networking layer could be added to allow multiple nodes to communicate and stay in sync.
 *   **WebSockets**: For real-time updates, a WebSocket API could be added to notify clients when new blocks are mined or new transactions are added to the mempool.
@@ -42,15 +38,21 @@ The easiest way to run the entire stack is with Docker Compose.
     cd Immutable-Ledger-Service
     ```
 
-2.  **Run the services**:
+2.  **Configure Environment**: Copy the example environment file. You can customize the values in `.env` if you wish.
+
+    ```bash
+    cp .env.example .env
+    ```
+
+3.  **Run the services**:
 
     ```bash
     docker-compose up --build
     ```
 
-    This will build the ledger service and start the `ledger`, `prometheus`, and `grafana` containers. The ledger's data will be stored in a Docker-managed volume named `ledger-data`.
+    This will build the ledger service and start the `ledger`, `prometheus`, and `grafana` containers. The configuration from your `.env` file will be automatically loaded.
 
-3.  **Access the services**:
+4.  **Access the services**:
 
     *   **Ledger API**: `http://localhost:8080`
     *   **Prometheus**: `http://localhost:9090`
@@ -58,7 +60,7 @@ The easiest way to run the entire stack is with Docker Compose.
 
 ### Running Locally
 
-To run the service locally without Docker, you'll need to have Go installed (version 1.18 or later).
+To run the service locally without Docker, you'll need to have Go installed (version 1.22 or later).
 
 1.  **Clone the repository**:
 
@@ -67,19 +69,25 @@ To run the service locally without Docker, you'll need to have Go installed (ver
     cd Immutable-Ledger-Service
     ```
 
-2.  **Install dependencies**:
+2.  **Configure Environment**: Copy the example environment file. The `godotenv` library will automatically load this file when you run the application.
 
     ```bash
-    go mod download
+    cp .env.example .env
     ```
 
-3.  **Run the service**:
+3.  **Install dependencies**:
+
+    ```bash
+    go mod tidy
+    ```
+
+4.  **Run the service**:
 
     ```bash
     go run cmd/ledger/main.go
     ```
 
-    The service will start and listen on port `8080`. A `blockchain.db` file will be created in the project root to store the ledger data.
+    The service will start and listen on port `8080`.
 
 ### Interacting with the API
 
