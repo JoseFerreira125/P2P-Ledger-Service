@@ -126,7 +126,6 @@ func (blockchain *Blockchain) HandleMessage(msg *Message, from peer.ID) error {
 		if err := json.Unmarshal(msg.Payload, &transaction); err != nil {
 			return err
 		}
-		// Ensure the transaction ID is calculated for incoming transactions
 		transaction.Hash()
 		return blockchain.AddTransactionToMempool(&transaction, true, from)
 
@@ -140,7 +139,6 @@ func (blockchain *Blockchain) HandleMessage(msg *Message, from peer.ID) error {
 	case MessageTypeGetStatus:
 		logrus.WithField("from", from.String()).Info("Received GetStatus request")
 
-		// Collect all known, non-loopback FULL multiaddresses to gossip.
 		var gossipedPeers []string
 		uniquePeers := make(map[string]struct{})
 
@@ -149,7 +147,6 @@ func (blockchain *Blockchain) HandleMessage(msg *Message, from peer.ID) error {
 				continue
 			}
 
-			// Ensure pID is valid before proceeding
 			if pID.String() == "" {
 				logrus.WithField("peer_id_object", pID).Warn("Skipping gossiped peer due to empty Peer ID object")
 				continue
@@ -158,17 +155,14 @@ func (blockchain *Blockchain) HandleMessage(msg *Message, from peer.ID) error {
 			addrs := blockchain.Node.Host.Peerstore().Addrs(pID)
 			logrus.WithFields(logrus.Fields{
 				"peer_id": pID.String(),
-				"addrs_from_peerstore": addrs, // Log the raw multiaddr objects
+				"addrs_from_peerstore": addrs,
 			}).Debug("Addresses retrieved from peerstore for gossiping")
 
 			for _, addr := range addrs {
 				addrStr := addr.String()
 				logrus.WithField("addr_string_from_peerstore", addrStr).Debug("Multiaddress string from peerstore")
 
-				// Only include non-loopback IPv4/DNS addresses
 				if (strings.Contains(addrStr, "/ip4/") || strings.Contains(addrStr, "/dns4/")) && !strings.Contains(addrStr, "/ip4/127.0.0.1/") {
-					// Standard libp2p behavior is that Peerstore().Addrs() returns addresses without /p2p/
-					// So we should always append the peer ID here.
 					fullPeerAddr := fmt.Sprintf("%s/p2p/%s", addrStr, pID.String())
 
 					logrus.WithFields(logrus.Fields{
@@ -212,16 +206,12 @@ func (blockchain *Blockchain) HandleMessage(msg *Message, from peer.ID) error {
 			"sender_listen_address": status.SenderListenAddress,
 		}).Info("Received Status message")
 
-		// 1. Add the sender's declared listening address to our known peers
 		if status.SenderListenAddress != "" {
-			// The SenderListenAddress already contains the /p2p/PEER_ID, so use it directly.
 			blockchain.Node.AddKnownPeer(status.SenderListenAddress)
 		}
 
-		// 2. Iterate through the gossiped peer addresses (which are now full multiaddresses)
 		for _, peerAddr := range status.PeerAddresses {
 			logrus.WithField("gossiped_peer_addr_received", peerAddr).Debug("Processing gossiped peer address")
-			// A full multiaddress can be directly parsed into AddrInfo
 			peerMa, err := multiaddr.NewMultiaddr(peerAddr)
 			if err != nil {
 				logrus.WithError(err).WithField("peer_address", peerAddr).Warn("Failed to parse gossiped multiaddress")
@@ -234,19 +224,16 @@ func (blockchain *Blockchain) HandleMessage(msg *Message, from peer.ID) error {
 				continue
 			}
 
-			// Skip self-address
 			if blockchain.Node.IsSelf(peerInfo.ID) {
 				continue
 			}
 
-			// Only attempt to connect if not already connected
 			if blockchain.Node.Host.Network().Connectedness(peerInfo.ID) != network.Connected {
 				logrus.WithFields(logrus.Fields{
 					"address": peerAddr,
 					"peer_id": peerInfo.ID.String(),
 				}).Debug("Found new peer via gossip, attempting to connect")
 
-				// We rely on Connect() to add to the peerstore and handle connection redundancy
 				go func(addr string) {
 					if err := blockchain.Node.Connect(addr); err != nil {
 						logrus.WithError(err).WithField("address", addr).Error("Failed to connect to gossiped peer")
@@ -398,7 +385,6 @@ func (blockchain *Blockchain) AddTransactionToMempool(transaction *Transaction, 
 	blockchain.Mu.Lock()
 	defer blockchain.Mu.Unlock()
 
-	// Ensure the transaction ID is calculated before checking for existence
 	if transaction.ID == "" {
 		transaction.Hash()
 	}
@@ -419,11 +405,6 @@ func (blockchain *Blockchain) AddTransactionToMempool(transaction *Transaction, 
 	blockchain.Mempool[transaction.ID] = transaction
 	MempoolSize.Inc()
 
-	// If the transaction is new (not from network) or received from network but needs re-broadcasting
-	// Re-broadcast to all peers except the one it came from (if from network)
-	// The condition `fromNetwork && len(excludePeer) > 0` is simplified to `len(excludePeer) > 0`
-	// because if `fromNetwork` is true, `excludePeer` will contain the sender, and if `fromNetwork` is false,
-	// `excludePeer` will be empty, so the broadcast will go to all peers.
 	if !fromNetwork || (len(excludePeer) > 0) {
 		if err := blockchain.broadcastTransaction(transaction, excludePeer...); err != nil {
 			logrus.WithError(err).Error("Failed to broadcast transaction")
@@ -495,7 +476,6 @@ func (blockchain *Blockchain) VerifyChain() bool {
 
 func (blockchain *Blockchain) Close() {
 	logrus.Info("Closing database")
-	// Handle potential error from db.Close()
 	if err := blockchain.db.Close(); err != nil {
 		logrus.WithError(err).Error("Failed to close database")
 	}

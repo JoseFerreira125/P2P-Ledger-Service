@@ -19,11 +19,10 @@ type Message struct {
 	Payload []byte
 }
 
-// StatusPayload defines the data sent in a Status message.
 type StatusPayload struct {
 	CurrentHeight     uint32
 	PeerAddresses     []string
-	SenderListenAddress string // New field to carry the sender's stable listening address
+	SenderListenAddress string
 }
 
 func (m *Message) ToBytes() ([]byte, error) {
