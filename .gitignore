@@ -39,10 +39,6 @@ blockchain.db
 # Logs
 *.log
 
-# Environment variables
-.env
-.env.*
-
 # OS-specific generated files
 .DS_Store
 Thumbs.db
