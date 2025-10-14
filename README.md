@@ -66,7 +66,7 @@ For offline viewing, you can see the static specification file here: **[View `sw
 
 With your three-node network running, you can test the gossip protocol and see the mesh networking in action.
 
-1.  **Send multiple transactions to Node 2** (you no longer need to mine between transactions):
+1.  **Send multiple transactions to Node 2**:
 
     ```bash
     curl -X POST -H "Content-Type: application/json" -d '{"data": "first transaction from node 2"}' http://localhost:8082/transaction

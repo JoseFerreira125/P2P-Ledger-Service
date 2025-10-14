@@ -15,15 +15,13 @@ type Transaction struct {
 	Timestamp int64  `json:"timestamp"`
 }
 
-// NewTransaction creates a new transaction with the given data and a current timestamp.
 func NewTransaction(data string) *Transaction {
 	return &Transaction{
 		Data:      data,
-		Timestamp: time.Now().UnixNano(), // Use nanoseconds for higher precision
+		Timestamp: time.Now().UnixNano(),
 	}
 }
 
-// Hash calculates and sets the unique ID for the transaction by hashing its data and timestamp.
 func (t *Transaction) Hash() {
 	// If the timestamp is not set, set it to the current time to ensure uniqueness.
 	if t.Timestamp == 0 {
