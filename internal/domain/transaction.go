@@ -5,8 +5,6 @@ import (
 	"encoding/hex"
 	"fmt"
 	"time"
-
-	"github.com/sirupsen/logrus"
 )
 
 type Transaction struct {
@@ -16,24 +14,19 @@ type Transaction struct {
 }
 
 func NewTransaction(data string) *Transaction {
-	return &Transaction{
+	tx := &Transaction{
 		Data:      data,
 		Timestamp: time.Now().UnixNano(),
 	}
+	tx.Hash()
+	return tx
 }
 
 func (t *Transaction) Hash() {
-	// If the timestamp is not set, set it to the current time to ensure uniqueness.
 	if t.Timestamp == 0 {
 		t.Timestamp = time.Now().UnixNano()
 	}
 	dataToHash := fmt.Sprintf("%s%d", t.Data, t.Timestamp)
 	hash := sha256.Sum256([]byte(dataToHash))
 	t.ID = hex.EncodeToString(hash[:])
-
-	logrus.WithFields(logrus.Fields{
-		"data":      t.Data,
-		"timestamp": t.Timestamp,
-		"id":        t.ID,
-	}).Debug("Transaction.Hash(): Calculated transaction ID")
 }

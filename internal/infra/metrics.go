@@ -1,4 +1,4 @@
-package domain
+package infra
 
 import (
 	"github.com/prometheus/client_golang/prometheus"

@@ -22,7 +22,7 @@ type Block struct {
 	MerkleRoot    string         `json:"merkleRoot"`
 }
 
-func newBlock(index int64, transactions []*Transaction, prevBlockHash string, difficulty int) *Block {
+func NewBlock(index int64, transactions []*Transaction, prevBlockHash string, difficulty int) *Block {
 	block := &Block{
 		Index:         index,
 		Timestamp:     time.Now().Unix(),
@@ -45,7 +45,7 @@ func (block *Block) setMerkleRoot() {
 	block.MerkleRoot = hex.EncodeToString(mTree.RootNode.Data)
 }
 
-func (block *Block) calculateHash() string {
+func (block *Block) CalculateHash() string {
 	timestamp := strconv.FormatInt(block.Timestamp, 10)
 	nonce := strconv.FormatInt(block.Nonce, 10)
 	headers := bytes.Join(
@@ -62,10 +62,10 @@ func (block *Block) calculateHash() string {
 	return hex.EncodeToString(hash[:])
 }
 
-func (block *Block) mine() {
+func (block *Block) Mine() {
 	target := strings.Repeat("0", block.Difficulty)
 	for {
-		block.Hash = block.calculateHash()
+		block.Hash = block.CalculateHash()
 		if block.Hash[:block.Difficulty] == target {
 			fmt.Printf("Block mined: %s\n", block.Hash)
 			break

@@ -4,13 +4,16 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"os"
 	"os/signal"
 	"syscall"
 
 	"github.com/joseferreira/Immutable-Ledger-Service/internal/api"
-	"github.com/joseferreira/Immutable-Ledger-Service/internal/domain"
+	"github.com/joseferreira/Immutable-Ledger-Service/internal/infra"
+	"github.com/joseferreira/Immutable-Ledger-Service/internal/persistence"
+	"github.com/joseferreira/Immutable-Ledger-Service/internal/service"
 	"github.com/sirupsen/logrus"
 
 	_ "github.com/joseferreira/Immutable-Ledger-Service/docs" // Blank import for swag docs
@@ -22,30 +25,37 @@ func main() {
 
 	logrus.SetFormatter(&logrus.JSONFormatter{})
 	logrus.SetOutput(os.Stdout)
+	logrus.SetLevel(logrus.DebugLevel) // Set log level to Debug
 
-	config := domain.LoadConfig()
+	config := infra.LoadConfig()
 
-	blockchain := domain.NewBlockchain(config)
-	defer blockchain.Close()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
-	node := domain.NewNode(config.P2PListenAddress, config)
-	defer node.Close() // Ensure the libp2p host is properly closed
+	repo := persistence.NewPersistenceService()
+	defer repo.Close()
 
-	blockchain.SetNode(node)
-	node.SetHandler(blockchain)
+	mempoolService := service.NewMempoolService()
+	blockchainService := service.NewBlockchainService(ctx, repo, mempoolService, config)
 
-	if err := node.Start(); err != nil {
-		logrus.WithError(err).Fatal("Failed to start P2P node")
+	p2pService, err := service.NewP2PService(ctx, config)
+	if err != nil {
+		logrus.WithError(err).Fatal("Failed to create P2P service")
 	}
 
+	nodeService := service.NewNodeService(ctx, blockchainService, mempoolService, p2pService)
+	defer nodeService.Close()
+
+	nodeService.Start()
+
 	if *connectAddr != "" {
-		if err := node.Connect(*connectAddr); err != nil {
+		if err := p2pService.Connect(*connectAddr); err != nil {
 			logrus.WithError(err).Error("Failed to connect to peer")
 		}
 	}
 
+	apiServer := api.NewServer(config.HTTPListenAddress, nodeService)
 	go func() {
-		apiServer := api.NewServer(config.HTTPListenAddress, blockchain)
 		if err := apiServer.Start(); err != nil {
 			logrus.WithError(err).Fatal("Failed to start API server")
 		}

@@ -8,10 +8,10 @@ import (
 type MessageType byte
 
 const (
-	MessageTypeTx        MessageType = 0x1
-	MessageTypeBlock     MessageType = 0x2
-	MessageTypeGetStatus MessageType = 0x3
-	MessageTypeStatus    MessageType = 0x4
+	MessageTypeTx       MessageType = 0x1
+	MessageTypeBlock    MessageType = 0x2
+	MessageTypeGetPeers MessageType = 0x3
+	MessageTypePeers    MessageType = 0x4
 )
 
 type Message struct {
@@ -19,10 +19,8 @@ type Message struct {
 	Payload []byte
 }
 
-type StatusPayload struct {
-	CurrentHeight     uint32
-	PeerAddresses     []string
-	SenderListenAddress string
+type PeersPayload struct {
+	Peers []string
 }
 
 func (m *Message) ToBytes() ([]byte, error) {
