@@ -23,9 +23,6 @@ func NewTransaction(data string) *Transaction {
 }
 
 func (t *Transaction) Hash() {
-	if t.Timestamp == 0 {
-		t.Timestamp = time.Now().UnixNano()
-	}
 	dataToHash := fmt.Sprintf("%s%d", t.Data, t.Timestamp)
 	hash := sha256.Sum256([]byte(dataToHash))
 	t.ID = hex.EncodeToString(hash[:])
