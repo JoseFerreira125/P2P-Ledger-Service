@@ -30,7 +30,6 @@ func LoadConfig() *Config {
 		DifficultyAdjustmentInterval: int64(getEnvAsInt("DIFFICULTY_ADJUSTMENT_INTERVAL_BLOCKS", 10)),
 		P2PListenAddress:             getEnv("P2P_LISTEN_ADDRESS", "/ip4/0.0.0.0/tcp/4000"),
 		HTTPListenAddress:            getEnv("HTTP_LISTEN_ADDRESS", ":8080"),
-		PeriodicSyncInterval:         getEnvAsDuration("PERIODIC_SYNC_INTERVAL_SECONDS", 30) * time.Second,
 		PeerDiscoveryInterval:        getEnvAsDuration("PEER_DISCOVERY_INTERVAL_SECONDS", 15) * time.Second,
 	}
 }
