@@ -1,6 +1,6 @@
-# Minimalist Immutable Ledger Service (MILS)
+# P2P Ledger Service
 
-This project is a lightweight, single-purpose microservice written in Go that provides an immutable, tamper-proof log of transactions. It operates as a peer-to-peer node in a decentralized network, collectively maintaining a single, consistent blockchain.
+This project is a lightweight, single-purpose service written in Go that provides an immutable, tamper-proof log of transactions. It operates as a peer-to-peer node in a decentralized network, collectively maintaining a single, consistent blockchain.
 
 ## What Has Been Done
 
@@ -23,7 +23,7 @@ This project provides a solid foundation, but there are several areas where it c
 * **Security: Cryptographic Transaction Signatures**: Implement a robust transaction verification scheme by adding public key `SenderAddress` and `Signature` fields to all transactions. This is a critical addition to ensure **transaction authenticity** and prevent unauthorized ledger manipulation.
 * **Advanced Consensus & Synchronization**: Develop a comprehensive strategy for **full chain synchronization**, allowing new nodes to request and validate the entire historical blockchain from peers. Crucially, implement a robust **fork resolution** strategy, such as the **"longest chain wins"** rule, to handle divergent chains and network partitions.
 * **Architectural Polish (Dependency Injection)**: Migrate the service initialization in `main.go` to a modern dependency injection framework like **Uber's Fx** for improved testability and cleaner dependency management.
-* **Database Migration**: To better align with a microservices architecture, the embedded BoltDB could be replaced with a client-server database like **Redis** for state storage.
+* **Database Migration**: The embedded BoltDB could be replaced with a client-server database like **Redis** for state storage.
 * **WebSockets**: For real-time updates, a WebSocket API could be added to notify clients of network events and block finalization.
 
 ## Start-Up Guide
